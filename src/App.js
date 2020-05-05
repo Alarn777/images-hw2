@@ -101,14 +101,23 @@ class App extends React.Component{
         canvas.stroke();
     }
 
-    curve = (x, y,cp1y,cp2x,cp2y,cp3x, canvas) => {
+    curve = (x,cp1y,cp2x,cp2y,endX,y,canvas) => {
         // this.state.curves.push({x: x, y: y, cp1x: cp1x, cp2x: cp2x, cp2y: cp2y, cp3x: cp3x})
-        x = this.normalize(x,true)
-        y = this.normalize(y,false)
+        // x = this.normalize(x,true)
+        // y = this.normalize(y,false)
         canvas.beginPath();
         canvas.moveTo(x, y);
         // console.log(this.normalize(cp1y,false))
-        canvas.bezierCurveTo( x,this.normalize(cp1y,false),this.normalize(cp2x,true) ,this.normalize(cp2y,false) ,this.normalize(cp3x,true), y)
+        // canvas.bezierCurveTo( x,this.normalize(cp1y,false),this.normalize(cp2x,true) ,this.normalize(cp2y,false) ,this.normalize(cp3x,true), y)
+        // canvas.bezierCurveTo( 250,200,700 , 200,250, 300)
+        // canvas.bezierCurveTo(250, 200, 700, 200, 700, 250);
+
+        console.log(x,cp1y,cp2x,cp2y,endX,y)
+
+        //canvas.moveTo(250, 250);
+        // canvas.bezierCurveTo(250, 100, 700, 100, 700, 250);
+        // context.bezierCurveTo(140, 10, 388, 10, 388, 170);
+        canvas.bezierCurveTo( x,cp1y,cp2x ,cp2y ,endX, y)
         canvas.strokeStyle = this.state.color;
         canvas.stroke();
     }
@@ -127,7 +136,6 @@ class App extends React.Component{
             const text = (e.target.result)
             let lines = e.target.result.split('\n');
             for(let line = 0; line < lines.length; line++){
-                console.log(lines[line]);
                 if(lines[line].startsWith('offset')){
                     this.state.offset.x = parseInt(lines[line].split(',')[1])
                     this.state.offset.y = parseInt(lines[line].split(',')[2])
@@ -175,20 +183,21 @@ class App extends React.Component{
                     let allcircles = data.split('/')
                     for (let i = 0; i < allcircles.length; i++) {
                         let x = parseInt(allcircles[i].split(',')[0])
-                        // x = this.normalize(parseInt(x), true)
-                        let y = parseInt(allcircles[i].split(',')[1])
-                        // y = this.normalize(parseInt(y), false)
-                        let cp1y = parseInt(allcircles[i].split(',')[2])
-                        // cp1y = this.normalize(parseInt(y), false)
-                        let cp2x = parseInt(allcircles[i].split(',')[3])
-                        // cp2x = this.normalize(parseInt(y), false)
+                        x = this.normalize(parseInt(x), true)
 
-                        let cp2y = parseInt(allcircles[i].split(',')[4])
-                        // cp2y = this.normalize(parseInt(y), false)
-                        let cp3x= parseInt(allcircles[i].split(',')[5])
-                        // cp3x = this.normalize(parseInt(y), false)
+                        let cp1y = parseInt(allcircles[i].split(',')[1])
+                        cp1y = this.normalize(parseInt(cp1y), false)
+                        let cp2x = parseInt(allcircles[i].split(',')[2])
+                        cp2x = this.normalize(parseInt(cp2x), true)
 
-                        this.state.curves.push({x: x, y: y, cp1y: cp1y, cp2x: cp2x, cp2y: cp2y, cp3x: cp3x})
+                        let cp2y = parseInt(allcircles[i].split(',')[3])
+                        cp2y = this.normalize(parseInt(cp2y), false)
+                        let endX= parseInt(allcircles[i].split(',')[4])
+                        endX = this.normalize(parseInt(endX), true)
+
+                        let a = parseInt(allcircles[i].split(',')[5])
+                        let b = this.normalize(a,false)
+                        this.state.curves.push({x: x, cp1y: cp1y, cp2x: cp2x, cp2y: cp2y,endX:endX, y: b})
                     }
 
 
@@ -294,7 +303,7 @@ class App extends React.Component{
             one.cp1y *= factor
             one.cp2x *= factor
             one.cp2y *= factor
-            one.cp3x *= factor
+            one.endX *= factor
             data.push(one)
         })
 
@@ -308,8 +317,9 @@ class App extends React.Component{
 
     moveImage = (x,y) => {
         let center = this.findCenterPoint()
-
-        let offsetX = x - center.x - 200
+        console.log(center.x)
+        console.log(center.y)
+        let offsetX = x - center.x
         let offsetY = y - center.y - 200
 
 
@@ -342,12 +352,24 @@ class App extends React.Component{
         })
         data = []
         this.state.curves.map(one => {
-            one.x += x
-            one.y += y
+            console.log(one)
+            console.log(y)
+            console.log(x)
             one.cp1y += y
             one.cp2x += x
             one.cp2y += y
-            one.cp3x += x
+            one.endX += x
+            // x: NaN
+            // y: -113
+            one.x += x
+            one.y += y
+            // one.cp1y += y
+            // one.cp2x += x
+            // one.cp2y += y
+            // one.endX += x
+
+            console.log(one)
+
             data.push(one)
         })
 
@@ -355,6 +377,11 @@ class App extends React.Component{
 
 
     }
+
+    mirrorImageRight = () => {
+
+    }
+
 
     mirrorImage = () => {
         console.log('in mirror')
@@ -371,31 +398,26 @@ class App extends React.Component{
         let flip = this.findCenterPoint()
         // console.log(flip.maxY)
         this.state.lines.map(one => {
-
-            console.log(one)
-            if(one.y === flip.maxY){
-                console.log('same')
-            }
-            else{
-                one.y = flip.maxY  + one.y
-            }
-            if(one.y1 === flip.maxY){
-                console.log('same')
-            }else {
-                one.y1 = flip.maxY + one.y1
-            }
-
-            console.log(one)
+            if(one.y === flip.maxY){} else{one.y = (flip.maxY - one.y) + flip.maxY}
+            if(one.y1 === flip.maxY){}else {one.y1 = (flip.maxY - one.y1) + flip.maxY}
         })
         this.state.circles.map(one => {
-            if(one.y === flip.maxY){
-                console.log('same')
-
-            }
-            else{
-                one.y = flip.maxY + one.y
-            }
+            if(one.y === flip.maxY){} else{one.y = (flip.maxY - one.y) + flip.maxY}
         })
+        this.state.rectangles.map(one => {
+            if(one.y === flip.maxY){} else{one.y = (flip.maxY - one.y) + flip.maxY}
+            if(one.y1 === flip.maxY){}else {one.y1 = (flip.maxY - one.y1) + flip.maxY}
+
+        })
+        // this.state.curves.push({x: x, y: y, cp1y: cp1y, cp2x: cp2x, cp2y: cp2y, cp3x: cp3x})
+        this.state.curves.map(one => {
+            if(one.y === flip.maxY){} else{one.y = (flip.maxY - one.y) + flip.maxY}
+            if(one.cp1y === flip.maxY){} else {one.cp1y = (flip.maxY - one.cp1y) + flip.maxY}
+            if(one.cp2y === flip.maxY){} else {one.cp2y = (flip.maxY - one.cp2y) + flip.maxY}
+
+        })
+
+
 
 
         this.renderOnCanvas()
@@ -417,7 +439,7 @@ class App extends React.Component{
         })
 
         this.state.curves.map(one => {
-            this.curve(one.x,one.y,one.cp1y,one.cp2x,one.cp2y,one.cp3x,this.refs.canvas.getContext('2d'))
+            this.curve(one.x,one.cp1y,one.cp2x,one.cp2y,one.endX,one.y,this.refs.canvas.getContext('2d'))
         })
 
         this.state.rectangles.map(one => {
@@ -439,16 +461,23 @@ class App extends React.Component{
             maxX = Math.max(one.x,maxX)
             maxY = Math.max(one.y,maxY)
             minX = Math.min(one.x,minX)
-            minY =Math.min(one.y,minY)
+            minY = Math.min(one.y,minY)
         })
         this.state.curves.map(one => {
-            maxX = Math.max(one.x,one.cp2x,one.cp3x,maxX)
+            maxX = Math.max(one.x,one.cp2x,one.endX,maxX)
             maxY = Math.max(one.y,one.cp1y,one.cp2y,maxY)
-            minX = Math.min(one.x,one.cp2x,one.cp3x,minX)
-            minY =Math.min(one.y,one.cp1y,one.cp2y,minY)
+            minX = Math.min(one.x,one.cp2x,one.endX,minX)
+            minY = Math.min(one.y,one.cp1y,one.cp2y,minY)
+        })
+        this.state.rectangles.map(one => {
+            maxX = Math.max(one.x,one.x1,maxX)
+            maxY = Math.max(one.y,one.y1,maxY)
+            minX = Math.min(one.x,one.x1,maxX)
+            minY = Math.min(one.y,one.y1,maxY)
         })
 
-        let centerX =( maxX + minX) /2
+
+        let centerX = (maxX + minX) /2
         let centerY = (maxY + minY) /2
         return {x:centerX,y:centerY,maxX:maxX,maxY:maxY,minX:minX,minY:minY}
     }
@@ -480,6 +509,7 @@ class App extends React.Component{
                         </CardActionArea>
                         <canvas ref="canvas" style={styles.board}  height={700}
                         width={1400}  onClick={(e) =>this.handleClickOnCanvas(e)}/>
+
                         {this.state.mode === 'scaling'?<div>
                             <Button
                                 style={{margin:10}}
@@ -489,11 +519,28 @@ class App extends React.Component{
                                 Enlarge
                             </Button>
                             <Button style={{margin:10}} onClick={() =>
-                                this.scaling('minus',0)}
+                                    this.scaling('minus',0)}
                                     size="small"
                                     variant='contained'
                                     color="primary">
                                 Reduce
+                            </Button>
+                        </div> : <div/>}
+
+                        {this.state.mode === 'mirror'?<div>
+                            <Button
+                                style={{margin:10}}
+                                onClick={() =>
+                                    this.mirrorImageRight()}
+                                size="small" variant='contained' color="primary">
+                                Right
+                            </Button>
+                            <Button style={{margin:10}} onClick={() =>
+                                this.mirrorImage()}
+                                    size="small"
+                                    variant='contained'
+                                    color="primary">
+                                Bottom
                             </Button>
                         </div> : <div/>}
 
@@ -503,7 +550,17 @@ class App extends React.Component{
                                 component="label"
                                 color="primary"
                             > Upload File<input  style={{ display: "none" }} type="file" onChange={(e) => this.showFile(e)} /></Button>
-                            <Typography>Choose a mode:</Typography>
+                            <Button
+                                variant="contained"
+                                component="label"
+                                color="primary"
+                                onClick={() => {
+                                    this.setState({lines:[],circles:[],curves:[],rectangles:[]})
+                                    this.clearCanvas()
+                                    window.location.reload(true);
+                                }}
+                            > Clean Canvas</Button>
+                            <Typography style={{marginLeft:200}}>Choose a mode:</Typography>
                             <Button disabled={this.state.mode === 'move'} onClick={() => this.setState({mode:'move',instruction:'Click on a point on canvas, the image will be centered in that point'})} size="small" variant='contained' color="primary">
                                 Move
                             </Button>
