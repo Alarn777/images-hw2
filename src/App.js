@@ -1,18 +1,16 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
 import ReactDOM from 'react-dom';
 import {Button} from "@material-ui/core";
 import Card from "@material-ui/core/Card";
 import CardActionArea from "@material-ui/core/CardActionArea";
-import CardMedia from "@material-ui/core/CardMedia";
 import Typography from "@material-ui/core/Typography";
 import CardActions from "@material-ui/core/CardActions";
 import CardContent from "@material-ui/core/CardContent";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import IconButton from "@material-ui/core/IconButton";
-
+import { SwatchesPicker} from 'react-color'
 
 class App extends React.Component{
     constructor(props) {
@@ -23,7 +21,6 @@ class App extends React.Component{
             offset:{
                 x:0,
                 y:0
-
             },
             canvasCoord:{
                 x:0,
@@ -39,7 +36,10 @@ class App extends React.Component{
             color:'#008000',
             action:'no action',
             instruction:'Choose mode to get instructions',
-            curve:{x: 100, y: 200, cp1y: 300, cp2x: 200, cp2y: 300, cp3x: 300}
+            errorText:'',
+            fileName:'',
+            colorPick:false,
+            rect:{x: 100, y: 100, x1: 300, y1: 100,x2: 300, y2: 300,x3: 100, y3: 300}
         };
     }
 
@@ -48,20 +48,16 @@ class App extends React.Component{
 
         let a = ReactDOM.findDOMNode(this.refs['canvas'])
             .getBoundingClientRect();
-        // console.log(a.x, a.y)
         this.state.canvasCoord.x =  Math.floor(a.x)
         this.state.canvasCoord.y =  Math.floor(a.y)
 
-        // let curve = this.state.curve
-
-        // this.curve(curve.x,curve.y,curve.cp1y,curve.cp2x,curve.cp2y,curve.cp3x,this.refs.canvas.getContext('2d'))
     }
 
     point = (x, y, canvas) => {
         canvas.beginPath();
         canvas.moveTo(x, y);
         canvas.lineTo(x+1, y+1);
-        canvas.strokeStyle = this.state.color;
+        canvas.strokeStyle = '#FF0000';
         canvas.stroke();
     }
 
@@ -85,9 +81,20 @@ class App extends React.Component{
         canvas.lineTo(x , yEnd);
         canvas.strokeStyle = this.state.color;
         canvas.stroke();
+    }
 
-
-
+    newRectangle = (x, y,x1,y1,x2,y2,x3,y3, canvas) =>{
+        canvas.beginPath();
+        canvas.moveTo(x, y);
+        canvas.lineTo(x1 , y1);
+        canvas.moveTo(x1, y1);
+        canvas.lineTo(x2 , y2);
+        canvas.moveTo(x2 , y2);
+        canvas.lineTo(x3 , y3);
+        canvas.moveTo(x3 , y3);
+        canvas.lineTo(x , y);
+        canvas.strokeStyle = this.state.color;
+        canvas.stroke();
     }
 
     circle = (x, y,r, canvas) => {
@@ -105,21 +112,27 @@ class App extends React.Component{
         // this.state.curves.push({x: x, y: y, cp1x: cp1x, cp2x: cp2x, cp2y: cp2y, cp3x: cp3x})
         // x = this.normalize(x,true)
         // y = this.normalize(y,false)
+
+        // 1 -  x,y
+        // 2 -  x1,y1
+        // 3 - x2 ,y2
+        //4 - x3, y3
+
         canvas.beginPath();
         canvas.moveTo(x, y);
-        // console.log(this.normalize(cp1y,false))
-        // canvas.bezierCurveTo( x,this.normalize(cp1y,false),this.normalize(cp2x,true) ,this.normalize(cp2y,false) ,this.normalize(cp3x,true), y)
-        // canvas.bezierCurveTo( 250,200,700 , 200,250, 300)
-        // canvas.bezierCurveTo(250, 200, 700, 200, 700, 250);
-
-        console.log(x,cp1y,cp2x,cp2y,endX,y)
-
-        //canvas.moveTo(250, 250);
-        // canvas.bezierCurveTo(250, 100, 700, 100, 700, 250);
-        // context.bezierCurveTo(140, 10, 388, 10, 388, 170);
         canvas.bezierCurveTo( x,cp1y,cp2x ,cp2y ,endX, y)
         canvas.strokeStyle = this.state.color;
         canvas.stroke();
+
+    }
+
+    curve1 = (x, y,x1,y1,x2,y2,x3,y3,canvas) => {
+        canvas.beginPath();
+        canvas.moveTo(x, y);
+        canvas.bezierCurveTo( x1,y1,x2 ,y2 ,x3, y3)
+        canvas.strokeStyle = this.state.color;
+        canvas.stroke();
+
     }
 
     normalize = (val,isX) => {
@@ -131,137 +144,419 @@ class App extends React.Component{
 
     showFile = async (e) => {
         e.preventDefault()
-        const reader = new FileReader()
-        reader.onload = async (e) => {
+        this.clearCanvas()
+        this.setState({errorText:''})
+        try{
+            const reader = new FileReader()
+            reader.onload = async (e) => {
             const text = (e.target.result)
             let lines = e.target.result.split('\n');
             for(let line = 0; line < lines.length; line++){
-                if(lines[line].startsWith('offset')){
-                    this.state.offset.x = parseInt(lines[line].split(',')[1])
-                    this.state.offset.y = parseInt(lines[line].split(',')[2])
-                    // this.setState({offset.x:})
-                }
-                else if(lines[line].startsWith('lines')) {
+                if(lines[line].startsWith('lines')) {
                     let oneLine = lines[line]
-                    let data = oneLine.split(':')[1]
-                    let alllines = data.split('/')
-                    for (let i = 0; i < alllines.length; i++) {
-                        let x = alllines[i].split('-')[0].split(',')[0]
-                        x = this.normalize(parseInt(x), true)
-                        let y = alllines[i].split('-')[0].split(',')[1]
-                        y = this.normalize(parseInt(y), false)
-                        let x1 = alllines[i].split('-')[1].split(',')[0]
-                        x1 = this.normalize(parseInt(x1), true)
-                        let y1 = alllines[i].split('-')[1].split(',')[1]
-                        y1 = this.normalize(parseInt(y1), false)
+                    try {
+                        let data = oneLine.split(':')[1]
+                        let alllines = data.split('/')
+                        for (let i = 0; i < alllines.length; i++) {
+                            let x = alllines[i].split('-')[0].split(',')[0]
+                            x = this.normalize(parseInt(x), true)
+                            let y = alllines[i].split('-')[0].split(',')[1]
+                            y = this.normalize(parseInt(y), false)
+                            let x1 = alllines[i].split('-')[1].split(',')[0]
+                            x1 = this.normalize(parseInt(x1), true)
+                            let y1 = alllines[i].split('-')[1].split(',')[1]
+                            y1 = this.normalize(parseInt(y1), false)
 
-                        let line = {x: x, y: y, x1: x1, y1: y1}
+                            let line = {x: x, y: y, x1: x1, y1: y1}
 
-                        this.state.lines.push(line)
+                            if(isNaN(x) || isNaN(x1) || isNaN(y) || isNaN(y1)){
+                                this.setState({errorText:'Error reading rectangles, fix the input file'})
+                                this.clearCanvas()
+
+                                return
+                            }
+
+                            this.state.lines.push(line)
+                        }
+                    }
+                    catch (e) {
+                        this.setState({errorText:'Error reading lines, fix the input file'})
+                        this.state.lines = []
                     }
                 }
                 else if(lines[line].startsWith('circles')) {
                     let oneLine = lines[line]
-                    let data = oneLine.split(':')[1]
-                    let allcircles = data.split('/')
-                    for (let i = 0; i < allcircles.length; i++) {
-                        let x = allcircles[i].split(',')[0]
-                        x = this.normalize(parseInt(x), true)
-                        let y = allcircles[i].split(',')[1]
-                        y = this.normalize(parseInt(y), false)
-                        let r = parseInt(allcircles[i].split(',')[2])
-                        // r = this.normalize(parseInt(y), false)
+                    try {
 
-                        let circle = {x: x, y: y, r: r}
 
-                        this.state.circles.push(circle)
+                        let data = oneLine.split(':')[1]
+                        let allcircles = data.split('/')
+                        for (let i = 0; i < allcircles.length; i++) {
+                            let x = allcircles[i].split(',')[0]
+                            x = this.normalize(parseInt(x), true)
+                            let y = allcircles[i].split(',')[1]
+                            y = this.normalize(parseInt(y), false)
+                            let r = parseInt(allcircles[i].split(',')[2])
+                            // r = this.normalize(parseInt(y), false)
+
+                            let circle = {x: x, y: y, r: r}
+
+                            if(isNaN(x) || isNaN(r) || isNaN(y)){
+                                this.setState({errorText:'Error reading rectangles, fix the input file'})
+                                this.clearCanvas()
+
+                                return
+                            }
+
+                            this.state.circles.push(circle)
+                        }
+                    }
+                    catch (e) {
+                        this.setState({errorText:'Error reading circles, fix the input file'})
+                        this.state.circles = []
                     }
                 }
                 else if(lines[line].startsWith('curves')) {
                     let oneLine = lines[line]
-                    let data = oneLine.split(':')[1]
-                    let allcircles = data.split('/')
-                    for (let i = 0; i < allcircles.length; i++) {
-                        let x = parseInt(allcircles[i].split(',')[0])
-                        x = this.normalize(parseInt(x), true)
 
-                        let cp1y = parseInt(allcircles[i].split(',')[1])
-                        cp1y = this.normalize(parseInt(cp1y), false)
-                        let cp2x = parseInt(allcircles[i].split(',')[2])
-                        cp2x = this.normalize(parseInt(cp2x), true)
+                    try {
+                        let data = oneLine.split(':')[1]
+                        let allcircles = data.split('/')
+                        for (let i = 0; i < allcircles.length; i++) {
+                            let x = allcircles[i].split(',')[0]
+                            x = this.normalize(parseInt(x), true)
+                            let y = allcircles[i].split(',')[1]
+                            y = this.normalize(parseInt(y), false)
 
-                        let cp2y = parseInt(allcircles[i].split(',')[3])
-                        cp2y = this.normalize(parseInt(cp2y), false)
-                        let endX= parseInt(allcircles[i].split(',')[4])
-                        endX = this.normalize(parseInt(endX), true)
+                            let x1 = allcircles[i].split(',')[2]
+                            x1 = this.normalize(parseInt(x1), true)
+                            let y1 = allcircles[i].split(',')[3]
+                            y1 = this.normalize(parseInt(y1), false)
 
-                        let a = parseInt(allcircles[i].split(',')[5])
-                        let b = this.normalize(a,false)
-                        this.state.curves.push({x: x, cp1y: cp1y, cp2x: cp2x, cp2y: cp2y,endX:endX, y: b})
+                            let x2 = allcircles[i].split(',')[4]
+                            x2 = this.normalize(parseInt(x2), true)
+                            let y2 = allcircles[i].split(',')[5]
+                            y2 = this.normalize(parseInt(y2), false)
+
+                            let x3 = allcircles[i].split(',')[6]
+                            x3 = this.normalize(parseInt(x3), true)
+                            let y3 = allcircles[i].split(',')[7]
+                            y3 = this.normalize(parseInt(y3), false)
+
+                            let curve = {x: x, y: y, x1: x1, y1: y1, x2: x2, y2: y2, x3: x3, y3: y3}
+
+                            if(isNaN(x) || isNaN(x1) || isNaN(x2)|| isNaN(x3)|| isNaN(y) || isNaN(y1) || isNaN(y2) || isNaN(y3)){
+                                this.setState({errorText:'Error reading rectangles, fix the input file'})
+                                this.clearCanvas()
+
+                                return
+                            }
+
+                            this.state.curves.push(curve)
+                        }
+                    }catch (e) {
+                        this.setState({errorText:'Error reading curves, fix the input file'})
+                        this.state.curves = []
                     }
-
-
                 }
                 else if(lines[line].startsWith('rectangles')) {
                     let oneLine = lines[line]
-                    let data = oneLine.split(':')[1]
-                    let alllines = data.split('/')
-                    for (let i = 0; i < alllines.length; i++) {
-                        let x = alllines[i].split('-')[0].split(',')[0]
-                        x = this.normalize(parseInt(x), true)
-                        let y = alllines[i].split('-')[0].split(',')[1]
-                        y = this.normalize(parseInt(y), false)
-                        let x1 = alllines[i].split('-')[1].split(',')[0]
-                        x1 = this.normalize(parseInt(x1), true)
-                        let y1 = alllines[i].split('-')[1].split(',')[1]
-                        y1 = this.normalize(parseInt(y1), false)
+                    try {
+                        let data = oneLine.split(':')[1]
+                        let alllines = data.split('/')
+                        for (let i = 0; i < alllines.length; i++) {
+                            let x = alllines[i].split(',')[0]
+                            x = this.normalize(parseInt(x), true)
+                            let y = alllines[i].split(',')[1]
+                            y = this.normalize(parseInt(y), false)
 
-                        let rectangle = {x: x, y: y, x1: x1, y1: y1}
-                        this.state.rectangles.push(rectangle)
+                            let x1 = alllines[i].split(',')[2]
+                            x1 = this.normalize(parseInt(x1), true)
+                            let y1 = alllines[i].split(',')[3]
+                            y1 = this.normalize(parseInt(y1), false)
+
+                            let x2 = alllines[i].split(',')[4]
+                            x2 = this.normalize(parseInt(x2), true)
+                            let y2 = alllines[i].split(',')[5]
+                            y2 = this.normalize(parseInt(y2), false)
+
+                            let x3 = alllines[i].split(',')[6]
+                            x3 = this.normalize(parseInt(x3), true)
+                            let y3 = alllines[i].split(',')[7]
+                            y3 = this.normalize(parseInt(y3), false)
+
+
+                            let rectangle = {x: x, y: y, x1: x1, y1: y1, x2: x2, y2: y2, x3: x3, y3: y3}
+
+                            if(isNaN(x) || isNaN(x1) || isNaN(x2)|| isNaN(x3)|| isNaN(y) || isNaN(y1) || isNaN(y2) || isNaN(y3)){
+                                this.setState({errorText:'Error reading rectangles, fix the input file'})
+                                this.clearCanvas()
+                                return
+                            }
+                            this.state.rectangles.push(rectangle)
+                        }
+                    }
+                    catch (e) {
+                        this.setState({errorText:'Error reading rectangles, fix the input file'})
+                        this.state.rectangles = []
                     }
                 }
 
                 }
-                // this.findCenterPoint()
                 this.renderOnCanvas()
-
-
-            // console.log(text)
             this.forceUpdate()
         };
+
         reader.readAsText(e.target.files[0])
+        }
+        catch (e) {
+            this.setState({errorText:'Error reading file'})
+        }
     }
 
     handleClickOnCanvas = (e) => {
         let x = e.clientX;     // Get the horizontal coordinate
         let y = e.clientY;     // Get the vertical coordinate
         let coor = "X coords: " + x + ", Y coords: " + y;
-        console.log(coor)
+        // console.log(coor)
 
         if(this.state.mode === 'move'){
             this.moveImage(x,y)
         }
 
         if(this.state.mode === 'mirror'){
-
-
-
-            this.mirrorImage()
         }
 
         if(this.state.mode === 'scaling'){
-            // this.scaling()
+        }
+
+        if(this.state.mode === 'spin'){
+
+        }
+
+    }
+
+    spinFigure = (mode,explicit_angle) => {
+        let angle = 0
+        if(mode === 'right'){
+            angle = 5
+        }
+        if(mode === 'angle'){
+            angle = explicit_angle
+        }
+        if(mode === 'left'){
+            angle = -5
+        }
+
+        let newAngle = angle * Math.PI/180
+
+        let data = this.findCenterPoint()
+        this.clearCanvas()
+
+        let centerX = data.x
+        let centerY = data.y
+
+        let x = 0,y = 0
+        this.state.lines.map(one => {
+            x = one.x
+            y = one.y
+            one.x = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+            x = one.x1
+            y = one.y1
+
+            one.x1 = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y1 =  centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+        })
+
+        this.state.rectangles.map(one => {
+            x = one.x
+            y = one.y
+
+            one.x = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+            x = one.x1
+            y = one.y1
+
+            one.x1 = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y1 =  centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+            x = one.x2
+            y = one.y2
+
+            one.x2 = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y2 = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+            x = one.x3
+            y = one.y3
+
+            one.x3 = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y3 = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+        })
+        this.state.circles.map(one => {
+
+            x = one.x
+            y = one.y
+
+            one.x = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+        })
+        this.state.curves.map(one => {
+            x = one.x
+            y = one.y
+            one.x = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+            x = one.x1
+            y = one.y1
+
+            one.x1 = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y1 =  centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+            x = one.x2
+            y = one.y2
+
+            one.x2 = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y2 = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+            x = one.x3
+            y = one.y3
+
+            one.x3 = centerX + (x-centerX)*Math.cos(newAngle) - (y-centerY)*Math.sin(newAngle);
+            one.y3 = centerY + (x-centerX)*Math.sin(newAngle) + (y-centerY)*Math.cos(newAngle)
+
+        })
+
+        this.renderOnCanvas()
+
+
+
+    }
+
+    spin = () => {
+        this.clearCanvas()
+
+
+
+        //find the max points
+        let data = this.findCenterPoint()
+        // let yDist = data.maxX
+        let d = Math.sqrt(Math.pow(this.state.rect.x1 - this.state.rect.x,2) + Math.pow(this.state.rect.y1 - this.state.rect.y,2))
+
+
+        let radius = Math.floor(d/2)
+        console.log(radius)
+
+
+        // Math.acos()
+
+        let maxX =  Math.max(this.state.rect.x, this.state.rect.x1,this.state.rect.x2,this.state.rect.x3)
+        let maxY = Math.max(this.state.rect.y,this.state.rect.y1,this.state.rect.y2,this.state.rect.y3)
+
+        let minX =  Math.min(this.state.rect.x, this.state.rect.x1,this.state.rect.x2,this.state.rect.x3)
+        let minY = Math.min(this.state.rect.y,this.state.rect.y1,this.state.rect.y2,this.state.rect.y3)
+
+        let centerX = (maxX + minX) /2
+        let centerY = (maxY + minY) /2
+
+        // console.log(centerX,centerY)
+
+        this.point(centerX,centerY,this.refs.canvas.getContext('2d') )
+
+        //calculate the angle
+        let alpha = 0.000
+
+        // console.log(this.state.rect.x/radius)
+        // console.log()
+
+
+        let cosAlpha =  this.state.rect.x/radius
+        let sinAlpha = this.state.rect.y/radius
+        // alpha = Math.acos(cosAlpha)
+        // console.log(cosAlpha)
+        // console.log(sinAlpha)
+
+        // let newAngle = 30
+
+        // let allX = [], allY = []
+
+        // allX.push(this.state.rect.x,this.state.rect.x1)
+        // allY.push(this.state.rect.y,this.state.rect.y1)
+
+        let newAngle = 5 * Math.PI/180
+
+
+        let allPoints = []
+
+        let x = this.state.rect.x
+        let y = this.state.rect.y
+
+        allPoints.push({x,y})
+
+        x = this.state.rect.x1
+        y = this.state.rect.y1
+
+        allPoints.push({x,y})
+
+        x = this.state.rect.x2
+        y = this.state.rect.y2
+
+        allPoints.push({x,y})
+
+        x = this.state.rect.x3
+        y = this.state.rect.y3
+
+        allPoints.push({x,y})
+
+        // allPoints.push({this.state.rect.x1,this.state.rect.y1})
+        // allPoints.push({this.state.rect.x2,this.state.rect.y2})
+        // allPoints.push({this.state.rect.x3,this.state.rect.y3})
+
+        for( let i=0; i < allPoints.length; i++ ){
+            allPoints[i].x = centerX + (allPoints[i].x-centerX)*Math.cos(newAngle) - (allPoints[i].y-centerY)*Math.sin(newAngle);
+            allPoints[i].y = centerY + (allPoints[i].x-centerX)*Math.sin(newAngle) + (allPoints[i].y-centerY)*Math.cos(newAngle);
+
         }
 
 
+        // let newX = centerX + (this.state.rect.x-centerX)*Math.cos(newAngle) - (this.state.rect.y-centerY)*Math.sin(newAngle);
 
-        // this.rectangle(500,500,600,600,this.refs.canvas.getContext('2d'))
+        // let newY = centerY + (this.state.rect.x-centerX)*Math.sin(newAngle) + (this.state.rect.y-centerY)*Math.cos(newAngle);
+
+
+
+        // let res = this.rotatePoints(allX,allY,centerX,centerY,45 * Math.PI/180)
+
+
+
+        this.state.rect.x = allPoints[0].x
+        this.state.rect.y = allPoints[0].y
+
+        // newX = centerX + (this.state.rect.x1-centerX)*Math.cos(newAngle) - (this.state.rect.y1-centerY)*Math.sin(newAngle);
+
+        // newY = centerY + (this.state.rect.x1-centerX)*Math.sin(newAngle) + (this.state.rect.y1-centerY)*Math.cos(newAngle);
+
+        this.state.rect.x1 = allPoints[1].x
+        this.state.rect.y1 =  allPoints[1].y
+
+        this.state.rect.x2 = allPoints[2].x
+        this.state.rect.y2 =  allPoints[2].y
+
+        this.state.rect.x3 = allPoints[3].x
+        this.state.rect.y3 =  allPoints[3].y
+
+        // console.log(this.state.rect)
+        // console.log(allPoints)
+
+        this.renderOnCanvas()
 
     }
 
     scaling = (action,number) => {
-        console.log(action)
-
         this.clearCanvas()
         let factor = 1
         if('plus' === action){
@@ -271,40 +566,39 @@ class App extends React.Component{
             factor = 0.9
         }
 
-
-
-        let data = []
         this.state.lines.map(one => {
             one.x *= factor
             one.x1 *= factor
             one.y *= factor
             one.y1 *= factor
-            data.push(one)
         })
-        data = []
+
         this.state.rectangles.map(one => {
             one.x *= factor
             one.x1 *= factor
+            one.x2 *= factor
+            one.x3 *= factor
             one.y *= factor
             one.y1 *= factor
-            data.push(one)
+            one.y2 *= factor
+            one.y3 *= factor
         })
-        data = []
+
         this.state.circles.map(one => {
             one.x *= factor
             one.y *= factor
             one.r *= factor
-            data.push(one)
         })
-        data = []
+
         this.state.curves.map(one => {
             one.x *= factor
+            one.x1 *= factor
+            one.x2 *= factor
+            one.x3 *= factor
             one.y *= factor
-            one.cp1y *= factor
-            one.cp2x *= factor
-            one.cp2y *= factor
-            one.endX *= factor
-            data.push(one)
+            one.y1 *= factor
+            one.y2 *= factor
+            one.y3 *= factor
         })
 
         this.renderOnCanvas()
@@ -317,86 +611,81 @@ class App extends React.Component{
 
     moveImage = (x,y) => {
         let center = this.findCenterPoint()
-        console.log(center.x)
-        console.log(center.y)
-        let offsetX = x - center.x
-        let offsetY = y - center.y - 200
-
+        let offsetX = x - this.normalize(center.x,true)  //- 200
+        let offsetY = y - this.normalize(center.y,false) // - 200
 
         x = offsetX
         y = offsetY
 
         this.clearCanvas()
 
-        let data = []
         this.state.lines.map(one => {
             one.x += x
             one.x1 += x
             one.y += y
             one.y1 += y
-            data.push(one)
         })
-        data = []
         this.state.rectangles.map(one => {
             one.x += x
             one.x1 += x
+            one.x2 += x
+            one.x3 += x
             one.y += y
             one.y1 += y
-            data.push(one)
+            one.y2 += y
+            one.y3 += y
         })
-        data = []
         this.state.circles.map(one => {
             one.x += x
             one.y += y
-            data.push(one)
         })
-        data = []
         this.state.curves.map(one => {
-            console.log(one)
-            console.log(y)
-            console.log(x)
-            one.cp1y += y
-            one.cp2x += x
-            one.cp2y += y
-            one.endX += x
-            // x: NaN
-            // y: -113
             one.x += x
+            one.x1 += x
+            one.x2 += x
+            one.x3 += x
             one.y += y
-            // one.cp1y += y
-            // one.cp2x += x
-            // one.cp2y += y
-            // one.endX += x
-
-            console.log(one)
-
-            data.push(one)
+            one.y1 += y
+            one.y2 += y
+            one.y3 += y
         })
-
         this.renderOnCanvas()
-
-
     }
 
     mirrorImageRight = () => {
+        this.clearCanvas()
 
+        let flip = this.findCenterPoint()
+        this.state.lines.map(one => {
+            if(one.x === flip.minX){} else{one.x = (flip.minX - one.x) + flip.minX}
+            if(one.x1 === flip.minX){}else {one.x1 = (flip.minX - one.x1) + flip.minX}
+        })
+        this.state.circles.map(one => {
+            if(one.x === flip.minX){} else{one.x = (flip.minX - one.x) + flip.minX}
+        })
+        this.state.rectangles.map(one => {
+            if(one.x === flip.minX){} else{one.x = (flip.minX - one.x) + flip.minX}
+            if(one.x1 === flip.minX){}else {one.x1 = (flip.minX - one.x1) + flip.minX}
+            if(one.x2 === flip.minX){}else {one.x2 = (flip.minX - one.x2) + flip.minX}
+            if(one.x3 === flip.minX){}else {one.x3 = (flip.minX - one.x3) + flip.minX}
+
+        })
+        this.state.curves.map(one => {
+            if(one.x === flip.minX){} else{one.x = (flip.minX - one.x) + flip.minX}
+            if(one.x1 === flip.minX){}else {one.x1 = (flip.minX - one.x1) + flip.minX}
+            if(one.x2 === flip.minX){}else {one.x2 = (flip.minX - one.x2) + flip.minX}
+            if(one.x3 === flip.minX){}else {one.x3 = (flip.minX - one.x3) + flip.minX}
+
+        })
+        this.renderOnCanvas()
     }
-
 
     mirrorImage = () => {
         console.log('in mirror')
 
         this.clearCanvas()
 
-        // console.log(this.state.lines)
-        // let one = this.state.curve
-
-        // let maxY = Math.max(one.y,one.cp1y,one.cp2y)
-        //
-        // console.log(this.normalize(maxY,false))
-
         let flip = this.findCenterPoint()
-        // console.log(flip.maxY)
         this.state.lines.map(one => {
             if(one.y === flip.maxY){} else{one.y = (flip.maxY - one.y) + flip.maxY}
             if(one.y1 === flip.maxY){}else {one.y1 = (flip.maxY - one.y1) + flip.maxY}
@@ -407,27 +696,20 @@ class App extends React.Component{
         this.state.rectangles.map(one => {
             if(one.y === flip.maxY){} else{one.y = (flip.maxY - one.y) + flip.maxY}
             if(one.y1 === flip.maxY){}else {one.y1 = (flip.maxY - one.y1) + flip.maxY}
+            if(one.y2 === flip.maxY){}else {one.y2 = (flip.maxY - one.y2) + flip.maxY}
+            if(one.y3 === flip.maxY){}else {one.y3 = (flip.maxY - one.y3) + flip.maxY}
 
         })
-        // this.state.curves.push({x: x, y: y, cp1y: cp1y, cp2x: cp2x, cp2y: cp2y, cp3x: cp3x})
         this.state.curves.map(one => {
+
             if(one.y === flip.maxY){} else{one.y = (flip.maxY - one.y) + flip.maxY}
-            if(one.cp1y === flip.maxY){} else {one.cp1y = (flip.maxY - one.cp1y) + flip.maxY}
-            if(one.cp2y === flip.maxY){} else {one.cp2y = (flip.maxY - one.cp2y) + flip.maxY}
+            if(one.y1 === flip.maxY){} else {one.y1 = (flip.maxY - one.y1) + flip.maxY}
+            if(one.y2 === flip.maxY){} else {one.y2 = (flip.maxY - one.y2) + flip.maxY}
+            if(one.y3 === flip.maxY){} else {one.y3 = (flip.maxY - one.y3) + flip.maxY}
 
         })
-
-
-
-
         this.renderOnCanvas()
-        // console.log(this.state.curve)
-        // this.clearCanvas()
-        // let curve = this.state.curve
-        //
-        // this.curve(curve.x,curve.y,curve.cp1y,curve.cp2x,curve.cp2y,curve.cp3x,this.refs.canvas.getContext('2d'))
     }
-
 
     renderOnCanvas = () => {
         this.state.lines.map(one => {
@@ -439,23 +721,27 @@ class App extends React.Component{
         })
 
         this.state.curves.map(one => {
-            this.curve(one.x,one.cp1y,one.cp2x,one.cp2y,one.endX,one.y,this.refs.canvas.getContext('2d'))
+            this.curve1(one.x,one.y,one.x1,one.y1,one.x2,one.y2,one.x3,one.y3,this.refs.canvas.getContext('2d'))
         })
 
         this.state.rectangles.map(one => {
-            this.rectangle(one.x,one.y,one.x1,one.y1,this.refs.canvas.getContext('2d'))
+            this.newRectangle(one.x,one.y,one.x1,one.y1,one.x2,one.y2,one.x3,one.y3,this.refs.canvas.getContext('2d'))
         })
+
+        //testing
+        // let rect = this.state.rect
+        // this.newRectangle(rect.x,rect.y,rect.x1,rect.y1,rect.x2,rect.y2,rect.x3,rect.y3,this.refs.canvas.getContext('2d'))
 
 
     }
 
     findCenterPoint = () => {
-        let maxX= 0,minX= 99999,maxY= 0,minY = 999999
+        let maxX= 0,minX= 999999,maxY= 0,minY = 999999
         this.state.lines.map(one => {
             maxX = Math.max(one.x,one.x1,maxX)
             maxY = Math.max(one.y,one.y1,maxY)
             minX = Math.min(one.x,one.x1,minX)
-            minY =Math.min(one.y,one.y1,minY)
+            minY = Math.min(one.y,one.y1,minY)
         })
         this.state.circles.map(one => {
             maxX = Math.max(one.x,maxX)
@@ -464,21 +750,20 @@ class App extends React.Component{
             minY = Math.min(one.y,minY)
         })
         this.state.curves.map(one => {
-            maxX = Math.max(one.x,one.cp2x,one.endX,maxX)
-            maxY = Math.max(one.y,one.cp1y,one.cp2y,maxY)
-            minX = Math.min(one.x,one.cp2x,one.endX,minX)
-            minY = Math.min(one.y,one.cp1y,one.cp2y,minY)
+            maxX = Math.max(one.x,one.x1,one.x2,one.x3,maxX)
+            maxY = Math.max(one.y,one.y1,one.y2,one.y3,maxY)
+            minX = Math.min(one.x,one.x1,one.x2,one.x3,minX)
+            minY = Math.min(one.y,one.y1,one.y2,one.y3,minY)
         })
         this.state.rectangles.map(one => {
-            maxX = Math.max(one.x,one.x1,maxX)
-            maxY = Math.max(one.y,one.y1,maxY)
-            minX = Math.min(one.x,one.x1,maxX)
-            minY = Math.min(one.y,one.y1,maxY)
+            maxX = Math.max(one.x,one.x1,one.x2,one.x3,maxX)
+            maxY = Math.max(one.y,one.y1,one.y2,one.y3,maxY)
+            minX = Math.min(one.x,one.x1,one.x2,one.x3,minX)
+            minY = Math.min(one.y,one.y1,one.y2,one.y3,minY)
         })
-
-
         let centerX = (maxX + minX) /2
         let centerY = (maxY + minY) /2
+
         return {x:centerX,y:centerY,maxX:maxX,maxY:maxY,minX:minX,minY:minY}
     }
 
@@ -493,8 +778,65 @@ class App extends React.Component{
                             <Typography variant="h6" >
                                 Welcome to Easy-Draw
                             </Typography>
+                            <Button
+                                variant="contained"
+                                component="label"
+                                style={styles.button}
+                            > Upload File<input
+                                value={this.state.fileName}
+                                style={{ display: "none" }}
+                                type="file"
+                                onChange={(e) => {
+                                    this.setState({fileName:e.target.value})
+                                    console.log('changed')
+                                    this.showFile(e)
+                                    this.setState({fileName:''})
+                                }}
+
+                            /></Button>
+                            <Button
+                                style={styles.button}
+                                variant="contained"
+                                component="label"
+                                onClick={() => {
+                                    this.clearCanvas()
+                                    window.location.reload(true);
+                                }}
+                            > Clean Canvas</Button>
+                            <Typography style={{marginLeft:20}}>Current color: </Typography>
+                            <div style={{marginLeft:5,height:20,width:20,backgroundColor:this.state.color}}/>
+                            <Button
+                                style={styles.button}
+                                variant="contained"
+                                component="label"
+
+                                onClick={() => {
+                                    this.setState({colorPick: !this.state.colorPick})
+                                }}
+                            > Pick Color</Button>
+
+
+                            <Typography style={{marginLeft:200}}>Choose a mode:</Typography>
+                            <Button  style={styles.button} disabled={this.state.mode === 'move'} onClick={() => this.setState({mode:'move',instruction:'Click on a point on canvas, the image will be centered in that point'})} size="small" variant='contained'>
+                                Move
+                            </Button>
+                            <Button  style={styles.button} disabled={this.state.mode === 'mirror'} onClick={() =>this.setState({mode:'mirror',instruction:'Click on buttons to mirror'})} size="small" variant='contained'>
+                                Mirror
+                            </Button>
+                            <Button  style={styles.button} disabled={this.state.mode === 'spin'} onClick={() =>this.setState({mode:'spin',instruction:'Click on Right or Left buttons to spin'})} size="small" variant='contained' >
+                                Spin
+                            </Button>
+                            <Button  style={styles.button} disabled={this.state.mode === 'scaling'} onClick={() => this.setState({mode:'scaling',instruction:'Click on buttons to adjust size'})} size="small" variant='contained' >
+                                Scaling
+                            </Button>
                         </Toolbar>
                     </AppBar>
+                    { this.state.colorPick ? <div style={ styles.picker.popover }>
+                        <div style={ styles.picker.cover } onClick={()=> this.setState({colorPick:false}) }/>
+                        <SwatchesPicker
+                            color={ this.state.color }
+                            onChangeComplete={(color) => this.setState({color:color.hex,colorPick: !this.state.colorPick}) }/>
+                    </div> : null }
 
                     <Card>
                         <CardActionArea>
@@ -502,13 +844,15 @@ class App extends React.Component{
                                 <Typography gutterBottom variant="h5" component="h2">
                                     Current mode: {this.state.mode}
                                 </Typography>
-                                <Typography gutterBottom variant="p" component="h2">
+                                <Typography gutterBottom variant="body1" component="h2">
                                     {this.state.instruction}
+                                </Typography>
+                                <Typography style={{color:'red'}} gutterBottom variant="body1" component="h2">
+                                    {this.state.errorText}
                                 </Typography>
                             </CardContent>
                         </CardActionArea>
-                        <canvas ref="canvas" style={styles.board}  height={700}
-                        width={1400}  onClick={(e) =>this.handleClickOnCanvas(e)}/>
+                       <canvas ref="canvas" style={styles.board}  height={700} width={1400}  onClick={(e) =>this.handleClickOnCanvas(e)}/>
 
                         {this.state.mode === 'scaling'?<div>
                             <Button
@@ -544,48 +888,48 @@ class App extends React.Component{
                             </Button>
                         </div> : <div/>}
 
+                        {this.state.mode === 'spin'?<div>
+                            <Button
+                                style={{margin:10}}
+                                onClick={() =>
+                                    this.spinFigure('right',0)}
+                                size="small" variant='contained' color="primary">
+                                Right
+                            </Button>
+                            <Button style={{margin:10}} onClick={() =>
+                                this.spinFigure('left',0)}
+                                    size="small"
+                                    variant='contained'
+                                    color="primary">
+                                Left
+                            </Button>
+                        </div> : <div/>}
                         <CardActions>
-                            <Button
-                                variant="contained"
-                                component="label"
-                                color="primary"
-                            > Upload File<input  style={{ display: "none" }} type="file" onChange={(e) => this.showFile(e)} /></Button>
-                            <Button
-                                variant="contained"
-                                component="label"
-                                color="primary"
-                                onClick={() => {
-                                    this.setState({lines:[],circles:[],curves:[],rectangles:[]})
-                                    this.clearCanvas()
-                                    window.location.reload(true);
-                                }}
-                            > Clean Canvas</Button>
-                            <Typography style={{marginLeft:200}}>Choose a mode:</Typography>
-                            <Button disabled={this.state.mode === 'move'} onClick={() => this.setState({mode:'move',instruction:'Click on a point on canvas, the image will be centered in that point'})} size="small" variant='contained' color="primary">
-                                Move
-                            </Button>
-                            <Button disabled={this.state.mode === 'mirror'} onClick={() =>this.setState({mode:'mirror'})} size="small" variant='contained' color="primary">
-                                Mirror
-                            </Button>
-                            <Button disabled={this.state.mode === 'spin'} onClick={() =>this.setState({mode:'spin'})} size="small" variant='contained' color="primary">
-                                Spin
-                            </Button>
-                            <Button disabled={this.state.mode === 'scaling'} onClick={() => this.setState({mode:'scaling'})} size="small" variant='contained' color="primary">
-                                Scaling
-                            </Button>
                         </CardActions>
                     </Card>
                 </div>
             </div>
         );
     }
-
-
 }
 
 
 const styles = {
-
+    button:{
+        marginLeft:10
+    },
+    picker:{
+        popover:{
+            position: 'absolute',
+            zIndex: '2',
+        },
+        cover:{
+            top: '10px',
+            right: '50%',
+            bottom: '0px',
+            left: '50%',
+        }
+    },
     board:{
         margin:'0 auto',
         height:700,
@@ -594,9 +938,7 @@ const styles = {
         webkitBoxShadow: "1px 3px 1px #9E9E9E",
         mozBoxShadow: "1px 3px 1px #9E9E9E",
         boxShadow: "1px 1px 5px 5px #9E9E9E"
-
     }
-
 };
 
 export default App;
