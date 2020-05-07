@@ -589,7 +589,7 @@ class App extends React.Component{
         this.renderOnCanvas()
     }
 
-    mirrorImageRight = () => {
+    mirrorImageLeft = () => {
         this.clearCanvas()
 
         let flip = this.findCenterPoint()
@@ -803,9 +803,9 @@ class App extends React.Component{
                             <Button
                                 style={{margin:10}}
                                 onClick={() =>
-                                    this.mirrorImageRight()}
+                                    this.mirrorImageLeft()}
                                 size="small" variant='contained' color="primary">
-                                Right
+                                Left
                             </Button>
                             <Button style={{margin:10}} onClick={() =>
                                 this.mirrorImage()}
