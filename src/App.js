@@ -46,10 +46,10 @@ class App extends React.Component{
     componentDidMount() {
         this.setState({canvas:this.refs.canvas.getContext('2d')})
 
-        let a = ReactDOM.findDOMNode(this.refs['canvas'])
+        let canvas = ReactDOM.findDOMNode(this.refs['canvas'])
             .getBoundingClientRect();
-        this.state.canvasCoord.x =  Math.floor(a.x)
-        this.state.canvasCoord.y =  Math.floor(a.y)
+        this.state.canvasCoord.x =  Math.floor(canvas.x)
+        this.state.canvasCoord.y =  Math.floor(canvas.y)
 
     }
 
@@ -98,9 +98,6 @@ class App extends React.Component{
     }
 
     circle = (x, y,r, canvas) => {
-        // x = x - this.state.canvasCoord.x
-        // y = y - this.state.canvasCoord.y
-
         canvas.lineWidth = 1;
         canvas.beginPath();
         canvas.arc(x, y, r, 0, 2 * Math.PI, true);
@@ -109,21 +106,11 @@ class App extends React.Component{
     }
 
     curve = (x,cp1y,cp2x,cp2y,endX,y,canvas) => {
-        // this.state.curves.push({x: x, y: y, cp1x: cp1x, cp2x: cp2x, cp2y: cp2y, cp3x: cp3x})
-        // x = this.normalize(x,true)
-        // y = this.normalize(y,false)
-
-        // 1 -  x,y
-        // 2 -  x1,y1
-        // 3 - x2 ,y2
-        //4 - x3, y3
-
         canvas.beginPath();
         canvas.moveTo(x, y);
         canvas.bezierCurveTo( x,cp1y,cp2x ,cp2y ,endX, y)
         canvas.strokeStyle = this.state.color;
         canvas.stroke();
-
     }
 
     curve1 = (x, y,x1,y1,x2,y2,x3,y3,canvas) => {
@@ -197,7 +184,6 @@ class App extends React.Component{
                             let y = allcircles[i].split(',')[1]
                             y = this.normalize(parseInt(y), false)
                             let r = parseInt(allcircles[i].split(',')[2])
-                            // r = this.normalize(parseInt(y), false)
 
                             let circle = {x: x, y: y, r: r}
 
@@ -318,7 +304,6 @@ class App extends React.Component{
         let x = e.clientX;     // Get the horizontal coordinate
         let y = e.clientY;     // Get the vertical coordinate
         let coor = "X coords: " + x + ", Y coords: " + y;
-        // console.log(coor)
 
         if(this.state.mode === 'move'){
             this.moveImage(x,y)
@@ -440,19 +425,12 @@ class App extends React.Component{
     spin = () => {
         this.clearCanvas()
 
-
-
         //find the max points
         let data = this.findCenterPoint()
-        // let yDist = data.maxX
+        
         let d = Math.sqrt(Math.pow(this.state.rect.x1 - this.state.rect.x,2) + Math.pow(this.state.rect.y1 - this.state.rect.y,2))
 
-
         let radius = Math.floor(d/2)
-        console.log(radius)
-
-
-        // Math.acos()
 
         let maxX =  Math.max(this.state.rect.x, this.state.rect.x1,this.state.rect.x2,this.state.rect.x3)
         let maxY = Math.max(this.state.rect.y,this.state.rect.y1,this.state.rect.y2,this.state.rect.y3)
@@ -463,33 +441,14 @@ class App extends React.Component{
         let centerX = (maxX + minX) /2
         let centerY = (maxY + minY) /2
 
-        // console.log(centerX,centerY)
-
         this.point(centerX,centerY,this.refs.canvas.getContext('2d') )
 
         //calculate the angle
         let alpha = 0.000
-
-        // console.log(this.state.rect.x/radius)
-        // console.log()
-
-
         let cosAlpha =  this.state.rect.x/radius
         let sinAlpha = this.state.rect.y/radius
-        // alpha = Math.acos(cosAlpha)
-        // console.log(cosAlpha)
-        // console.log(sinAlpha)
-
-        // let newAngle = 30
-
-        // let allX = [], allY = []
-
-        // allX.push(this.state.rect.x,this.state.rect.x1)
-        // allY.push(this.state.rect.y,this.state.rect.y1)
 
         let newAngle = 5 * Math.PI/180
-
-
         let allPoints = []
 
         let x = this.state.rect.x
@@ -512,33 +471,14 @@ class App extends React.Component{
 
         allPoints.push({x,y})
 
-        // allPoints.push({this.state.rect.x1,this.state.rect.y1})
-        // allPoints.push({this.state.rect.x2,this.state.rect.y2})
-        // allPoints.push({this.state.rect.x3,this.state.rect.y3})
-
         for( let i=0; i < allPoints.length; i++ ){
             allPoints[i].x = centerX + (allPoints[i].x-centerX)*Math.cos(newAngle) - (allPoints[i].y-centerY)*Math.sin(newAngle);
             allPoints[i].y = centerY + (allPoints[i].x-centerX)*Math.sin(newAngle) + (allPoints[i].y-centerY)*Math.cos(newAngle);
 
         }
 
-
-        // let newX = centerX + (this.state.rect.x-centerX)*Math.cos(newAngle) - (this.state.rect.y-centerY)*Math.sin(newAngle);
-
-        // let newY = centerY + (this.state.rect.x-centerX)*Math.sin(newAngle) + (this.state.rect.y-centerY)*Math.cos(newAngle);
-
-
-
-        // let res = this.rotatePoints(allX,allY,centerX,centerY,45 * Math.PI/180)
-
-
-
         this.state.rect.x = allPoints[0].x
         this.state.rect.y = allPoints[0].y
-
-        // newX = centerX + (this.state.rect.x1-centerX)*Math.cos(newAngle) - (this.state.rect.y1-centerY)*Math.sin(newAngle);
-
-        // newY = centerY + (this.state.rect.x1-centerX)*Math.sin(newAngle) + (this.state.rect.y1-centerY)*Math.cos(newAngle);
 
         this.state.rect.x1 = allPoints[1].x
         this.state.rect.y1 =  allPoints[1].y
@@ -548,9 +488,6 @@ class App extends React.Component{
 
         this.state.rect.x3 = allPoints[3].x
         this.state.rect.y3 =  allPoints[3].y
-
-        // console.log(this.state.rect)
-        // console.log(allPoints)
 
         this.renderOnCanvas()
 
@@ -611,8 +548,8 @@ class App extends React.Component{
 
     moveImage = (x,y) => {
         let center = this.findCenterPoint()
-        let offsetX = x - this.normalize(center.x,true)  //- 200
-        let offsetY = y - this.normalize(center.y,false) // - 200
+        let offsetX = x - this.normalize(center.x,true)  
+        let offsetY = y - this.normalize(center.y,false) 
 
         x = offsetX
         y = offsetY
@@ -681,8 +618,6 @@ class App extends React.Component{
     }
 
     mirrorImage = () => {
-        console.log('in mirror')
-
         this.clearCanvas()
 
         let flip = this.findCenterPoint()
@@ -727,12 +662,6 @@ class App extends React.Component{
         this.state.rectangles.map(one => {
             this.newRectangle(one.x,one.y,one.x1,one.y1,one.x2,one.y2,one.x3,one.y3,this.refs.canvas.getContext('2d'))
         })
-
-        //testing
-        // let rect = this.state.rect
-        // this.newRectangle(rect.x,rect.y,rect.x1,rect.y1,rect.x2,rect.y2,rect.x3,rect.y3,this.refs.canvas.getContext('2d'))
-
-
     }
 
     findCenterPoint = () => {
@@ -788,7 +717,6 @@ class App extends React.Component{
                                 type="file"
                                 onChange={(e) => {
                                     this.setState({fileName:e.target.value})
-                                    console.log('changed')
                                     this.showFile(e)
                                     this.setState({fileName:''})
                                 }}
@@ -912,7 +840,6 @@ class App extends React.Component{
         );
     }
 }
-
 
 const styles = {
     button:{
