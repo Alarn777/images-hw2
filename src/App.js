@@ -15,6 +15,8 @@ import { SwatchesPicker} from 'react-color'
 class App extends React.Component{
     constructor(props) {
         super(props);
+
+        //state is the variable holder for the class. Each method can access and mutate the state
         this.state = {
             counter: 0,
             file:'',
@@ -43,6 +45,8 @@ class App extends React.Component{
         };
     }
 
+
+    //React function that runs on load of the page
     componentDidMount() {
         this.setState({canvas:this.refs.canvas.getContext('2d')})
 
@@ -53,6 +57,8 @@ class App extends React.Component{
 
     }
 
+
+    //basic point (for tests mainly)
     point = (x, y, canvas) => {
         canvas.beginPath();
         canvas.moveTo(x, y);
@@ -61,6 +67,8 @@ class App extends React.Component{
         canvas.stroke();
     }
 
+
+    //basic line
     line = (x, y,xEnd,yEnd, canvas) =>{
         canvas.beginPath();
         canvas.moveTo(x, y);
@@ -69,20 +77,9 @@ class App extends React.Component{
         canvas.stroke();
     }
 
-    rectangle = (x, y,xEnd,yEnd, canvas) =>{
-        canvas.beginPath();
-        canvas.moveTo(x, y);
-        canvas.lineTo(x , yEnd);
-        canvas.moveTo(x, y);
-        canvas.lineTo(xEnd , y);
-        canvas.moveTo(xEnd, y);
-        canvas.lineTo(xEnd , yEnd);
-        canvas.moveTo(xEnd , yEnd);
-        canvas.lineTo(x , yEnd);
-        canvas.strokeStyle = this.state.color;
-        canvas.stroke();
-    }
 
+
+    //rectangle is created from 4 lines rendered one after another
     newRectangle = (x, y,x1,y1,x2,y2,x3,y3, canvas) =>{
         canvas.beginPath();
         canvas.moveTo(x, y);
@@ -97,6 +94,7 @@ class App extends React.Component{
         canvas.stroke();
     }
 
+    //simple circle with center and radius
     circle = (x, y,r, canvas) => {
         canvas.lineWidth = 1;
         canvas.beginPath();
@@ -105,14 +103,7 @@ class App extends React.Component{
         canvas.stroke();
     }
 
-    curve = (x,cp1y,cp2x,cp2y,endX,y,canvas) => {
-        canvas.beginPath();
-        canvas.moveTo(x, y);
-        canvas.bezierCurveTo( x,cp1y,cp2x ,cp2y ,endX, y)
-        canvas.strokeStyle = this.state.color;
-        canvas.stroke();
-    }
-
+    //Bezier curve
     curve1 = (x, y,x1,y1,x2,y2,x3,y3,canvas) => {
         canvas.beginPath();
         canvas.moveTo(x, y);
@@ -122,6 +113,7 @@ class App extends React.Component{
 
     }
 
+    //the canvas is not located in pure 0,0 of the page, thus the starting point of the canvas is added to each value
     normalize = (val,isX) => {
         if(isX)
             return val +  this.state.canvasCoord.x
@@ -129,6 +121,8 @@ class App extends React.Component{
             return val + this.state.canvasCoord.y
     }
 
+
+    //uploading and parsing the file
     showFile = async (e) => {
         e.preventDefault()
         this.clearCanvas()
@@ -300,6 +294,8 @@ class App extends React.Component{
         }
     }
 
+
+    //for the move function we need to catch the click of the mouse
     handleClickOnCanvas = (e) => {
         let x = e.clientX;     // Get the horizontal coordinate
         let y = e.clientY;     // Get the vertical coordinate
@@ -321,6 +317,8 @@ class App extends React.Component{
 
     }
 
+
+    //spinning the figure by finding the center point and then performing trigonometric computation on each point in the drawing
     spinFigure = (mode,explicit_angle) => {
         let angle = 0
         if(mode === 'right'){
@@ -422,77 +420,8 @@ class App extends React.Component{
 
     }
 
-    spin = () => {
-        this.clearCanvas()
 
-        //find the max points
-        let data = this.findCenterPoint()
-        
-        let d = Math.sqrt(Math.pow(this.state.rect.x1 - this.state.rect.x,2) + Math.pow(this.state.rect.y1 - this.state.rect.y,2))
-
-        let radius = Math.floor(d/2)
-
-        let maxX =  Math.max(this.state.rect.x, this.state.rect.x1,this.state.rect.x2,this.state.rect.x3)
-        let maxY = Math.max(this.state.rect.y,this.state.rect.y1,this.state.rect.y2,this.state.rect.y3)
-
-        let minX =  Math.min(this.state.rect.x, this.state.rect.x1,this.state.rect.x2,this.state.rect.x3)
-        let minY = Math.min(this.state.rect.y,this.state.rect.y1,this.state.rect.y2,this.state.rect.y3)
-
-        let centerX = (maxX + minX) /2
-        let centerY = (maxY + minY) /2
-
-        this.point(centerX,centerY,this.refs.canvas.getContext('2d') )
-
-        //calculate the angle
-        let alpha = 0.000
-        let cosAlpha =  this.state.rect.x/radius
-        let sinAlpha = this.state.rect.y/radius
-
-        let newAngle = 5 * Math.PI/180
-        let allPoints = []
-
-        let x = this.state.rect.x
-        let y = this.state.rect.y
-
-        allPoints.push({x,y})
-
-        x = this.state.rect.x1
-        y = this.state.rect.y1
-
-        allPoints.push({x,y})
-
-        x = this.state.rect.x2
-        y = this.state.rect.y2
-
-        allPoints.push({x,y})
-
-        x = this.state.rect.x3
-        y = this.state.rect.y3
-
-        allPoints.push({x,y})
-
-        for( let i=0; i < allPoints.length; i++ ){
-            allPoints[i].x = centerX + (allPoints[i].x-centerX)*Math.cos(newAngle) - (allPoints[i].y-centerY)*Math.sin(newAngle);
-            allPoints[i].y = centerY + (allPoints[i].x-centerX)*Math.sin(newAngle) + (allPoints[i].y-centerY)*Math.cos(newAngle);
-
-        }
-
-        this.state.rect.x = allPoints[0].x
-        this.state.rect.y = allPoints[0].y
-
-        this.state.rect.x1 = allPoints[1].x
-        this.state.rect.y1 =  allPoints[1].y
-
-        this.state.rect.x2 = allPoints[2].x
-        this.state.rect.y2 =  allPoints[2].y
-
-        this.state.rect.x3 = allPoints[3].x
-        this.state.rect.y3 =  allPoints[3].y
-
-        this.renderOnCanvas()
-
-    }
-
+    //scaling is done by multiplying each point value by scalar. Scaling comes from 0,0 (beginning of the canvas)
     scaling = (action,number) => {
         this.clearCanvas()
         let factor = 1
@@ -541,15 +470,19 @@ class App extends React.Component{
         this.renderOnCanvas()
     }
 
+
+    //cean the canvas from everything
     clearCanvas = ( ) => {
         this.refs.canvas.getContext('2d').beginPath();
         this.refs.canvas.getContext('2d').clearRect(0,0, this.normalize(1400,true), this.normalize(700,false));
     }
 
+
+    //finding the center point of the image and calculating offset from it to the point clicked, than moving each point in the drawing by this offset
     moveImage = (x,y) => {
         let center = this.findCenterPoint()
-        let offsetX = x - this.normalize(center.x,true)  
-        let offsetY = y - this.normalize(center.y,false) 
+        let offsetX = x - this.normalize(center.x,true)
+        let offsetY = y - this.normalize(center.y,false)
 
         x = offsetX
         y = offsetY
@@ -589,6 +522,8 @@ class App extends React.Component{
         this.renderOnCanvas()
     }
 
+
+    //finding the most left point of the image and then reflecting each coordinate to the - of itself.
     mirrorImageLeft = () => {
         this.clearCanvas()
 
@@ -617,6 +552,7 @@ class App extends React.Component{
         this.renderOnCanvas()
     }
 
+    //finding the most bottom point of the image and then reflecting each coordinate to the - of itself.
     mirrorImage = () => {
         this.clearCanvas()
 
@@ -646,6 +582,8 @@ class App extends React.Component{
         this.renderOnCanvas()
     }
 
+
+    //drawing each type of figure on the canvas
     renderOnCanvas = () => {
         this.state.lines.map(one => {
             this.line(one.x,one.y,one.x1,one.y1,this.refs.canvas.getContext('2d'))
@@ -664,6 +602,8 @@ class App extends React.Component{
         })
     }
 
+
+    //method that finds each max,min point and also a center point in the image
     findCenterPoint = () => {
         let maxX= 0,minX= 999999,maxY= 0,minY = 999999
         this.state.lines.map(one => {
@@ -696,6 +636,8 @@ class App extends React.Component{
         return {x:centerX,y:centerY,maxX:maxX,maxY:maxY,minX:minX,minY:minY}
     }
 
+
+    //runs every secont to redraw the changes on the screen
     render() {
         return (
             <div className="App">
@@ -717,7 +659,7 @@ class App extends React.Component{
                                 type="file"
                                 onChange={(e) => {
                                     this.setState({fileName:e.target.value})
-                                    this.showFile(e)
+                                    this.showFile(e).then().catch()
                                     this.setState({fileName:''})
                                 }}
 
