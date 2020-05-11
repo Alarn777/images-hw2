@@ -40,8 +40,9 @@ class App extends React.Component{
             instruction:'Choose mode to get instructions',
             errorText:'',
             fileName:'',
+            cavasSize:{y:700,x:1400},
             colorPick:false,
-            rect:{x: 100, y: 100, x1: 300, y1: 100,x2: 300, y2: 300,x3: 100, y3: 300}
+            // rect:{x: 100, y: 100, x1: 300, y1: 100,x2: 300, y2: 300,x3: 100, y3: 300}
         };
     }
 
@@ -283,7 +284,8 @@ class App extends React.Component{
                 }
 
                 }
-                this.renderOnCanvas()
+                this.moveImage(this.normalize(700,true),this.normalize(350,false))
+                // this.renderOnCanvas()
             this.forceUpdate()
         };
 
@@ -552,6 +554,35 @@ class App extends React.Component{
         this.renderOnCanvas()
     }
 
+    //finding the most left point of the image and then reflecting each coordinate to the - of itself.
+    mirrorImageRight = () => {
+        this.clearCanvas()
+
+        let flip = this.findCenterPoint()
+        this.state.lines.map(one => {
+            if(one.x === flip.maxX){} else{one.x = (flip.maxX - one.x) + flip.maxX}
+            if(one.x1 === flip.maxX){}else {one.x1 = (flip.maxX - one.x1) + flip.maxX}
+        })
+        this.state.circles.map(one => {
+            if(one.x === flip.maxX){} else{one.x = (flip.maxX - one.x) + flip.maxX}
+        })
+        this.state.rectangles.map(one => {
+            if(one.x === flip.maxX){} else{one.x = (flip.maxX - one.x) + flip.maxX}
+            if(one.x1 === flip.maxX){}else {one.x1 = (flip.maxX - one.x1) + flip.maxX}
+            if(one.x2 === flip.maxX){}else {one.x2 = (flip.maxX - one.x2) + flip.maxX}
+            if(one.x3 === flip.maxX){}else {one.x3 = (flip.maxX - one.x3) + flip.maxX}
+
+        })
+        this.state.curves.map(one => {
+            if(one.x === flip.maxX){} else{one.x = (flip.maxX - one.x) + flip.maxX}
+            if(one.x1 === flip.maxX){}else {one.x1 = (flip.maxX - one.x1) + flip.maxX}
+            if(one.x2 === flip.maxX){}else {one.x2 = (flip.maxX - one.x2) + flip.maxX}
+            if(one.x3 === flip.maxX){}else {one.x3 = (flip.maxX - one.x3) + flip.maxX}
+
+        })
+        this.renderOnCanvas()
+    }
+
     //finding the most bottom point of the image and then reflecting each coordinate to the - of itself.
     mirrorImage = () => {
         this.clearCanvas()
@@ -577,6 +608,35 @@ class App extends React.Component{
             if(one.y1 === flip.maxY){} else {one.y1 = (flip.maxY - one.y1) + flip.maxY}
             if(one.y2 === flip.maxY){} else {one.y2 = (flip.maxY - one.y2) + flip.maxY}
             if(one.y3 === flip.maxY){} else {one.y3 = (flip.maxY - one.y3) + flip.maxY}
+
+        })
+        this.renderOnCanvas()
+    }
+
+    mirrorImageTop = () => {
+        this.clearCanvas()
+
+        let flip = this.findCenterPoint()
+        this.state.lines.map(one => {
+            if(one.y === flip.minY){} else{one.y = (flip.minY - one.y) + flip.minY}
+            if(one.y1 === flip.minY){}else {one.y1 = (flip.minY - one.y1) + flip.minY}
+        })
+        this.state.circles.map(one => {
+            if(one.y === flip.minY){} else{one.y = (flip.minY - one.y) + flip.minY}
+        })
+        this.state.rectangles.map(one => {
+            if(one.y === flip.minY){console.log('same y')} else{one.y = (flip.minY - one.y) + flip.minY}
+            if(one.y1 === flip.minY){console.log('same y1')} else {one.y1 = (flip.minY - one.y1) + flip.minY}
+            if(one.y2 === flip.minY){console.log('same y2')} else {one.y2 = (flip.minY - one.y2) + flip.minY}
+            if(one.y3 === flip.minY){console.log('same y3')} else {one.y3 = (flip.minY - one.y3) + flip.minY}
+
+        })
+        this.state.curves.map(one => {
+
+            if(one.y === flip.minY){} else{one.y = (flip.minY - one.y) + flip.minY}
+            if(one.y1 === flip.minY){} else {one.y1 = (flip.minY - one.y1) + flip.minY}
+            if(one.y2 === flip.minY){} else {one.y2 = (flip.minY - one.y2) + flip.minY}
+            if(one.y3 === flip.minY){} else {one.y3 = (flip.minY - one.y3) + flip.minY}
 
         })
         this.renderOnCanvas()
@@ -637,7 +697,7 @@ class App extends React.Component{
     }
 
 
-    //runs every secont to redraw the changes on the screen
+    //runs every second to redraw the changes on the screen
     render() {
         return (
             <div className="App">
@@ -705,7 +765,11 @@ class App extends React.Component{
                         <div style={ styles.picker.cover } onClick={()=> this.setState({colorPick:false}) }/>
                         <SwatchesPicker
                             color={ this.state.color }
-                            onChangeComplete={(color) => this.setState({color:color.hex,colorPick: !this.state.colorPick}) }/>
+                            onChangeComplete={(color) => {
+                                this.setState({color:color.hex,colorPick: !this.state.colorPick})
+                                this.clearCanvas()
+                                this.renderOnCanvas()
+                            }}/>
                     </div> : null }
 
                     <Card>
@@ -749,12 +813,26 @@ class App extends React.Component{
                                 size="small" variant='contained' color="primary">
                                 Left
                             </Button>
+                            <Button
+                                style={{margin:10}}
+                                onClick={() =>
+                                    this.mirrorImageRight()}
+                                size="small" variant='contained' color="primary">
+                                Right
+                            </Button>
                             <Button style={{margin:10}} onClick={() =>
                                 this.mirrorImage()}
                                     size="small"
                                     variant='contained'
                                     color="primary">
                                 Bottom
+                            </Button>
+                            <Button style={{margin:10}} onClick={() =>
+                                this.mirrorImageTop()}
+                                    size="small"
+                                    variant='contained'
+                                    color="primary">
+                                Top
                             </Button>
                         </div> : <div/>}
 
@@ -803,7 +881,7 @@ const styles = {
         margin:'0 auto',
         height:700,
         width:1400,
-        backgroundColor:"lightgray",
+        // backgroundColor:"lightgray",
         webkitBoxShadow: "1px 3px 1px #9E9E9E",
         mozBoxShadow: "1px 3px 1px #9E9E9E",
         boxShadow: "1px 1px 5px 5px #9E9E9E"
